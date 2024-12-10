@@ -3,6 +3,7 @@ using System.IO;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 using YouTubeDownloader.Interfaces;
+using YouTubeDownloader.Services;
 
 namespace YouTubeDownloader.Commands;
 
@@ -17,17 +18,25 @@ public class DownloadVideoCommand : ICommand
 
     public DownloadVideoCommand(YoutubeClient client, string videoUrl, string? outputFilePath = null)
     {
-        _client = client;
-        _videoUrl = videoUrl;
+        _client = client ?? throw new ArgumentNullException(nameof(client));
+        _videoUrl = videoUrl ?? throw new ArgumentNullException(nameof(videoUrl));
 
-        // Устанавливаем путь по умолчанию, если путь не указан
-        _outputFilePath = string.IsNullOrWhiteSpace(outputFilePath)
-            ? GetDefaultDownloadPath()
-            : Path.Combine(outputFilePath, "video.mp4");
+        // Устанавливаем начальное значение _outputFilePath
+        _outputFilePath = outputFilePath ?? string.Empty;
     }
 
     public async Task ExecuteAsync()
     {
+        // Получаем информацию о видео
+        var video = await _client.Videos.GetAsync(_videoUrl);
+
+        // Формируем путь с названием видео
+        var sanitizedTitle = PathService.SanitizeFileName(video.Title);
+        var fileName = $"{sanitizedTitle}.mp4";
+        _outputFilePath = string.IsNullOrWhiteSpace(_outputFilePath)
+            ? PathService.GetDefaultDownloadPath(fileName)
+            : Path.Combine(_outputFilePath, fileName);
+
         var streamManifest = await _client.Videos.Streams.GetManifestAsync(_videoUrl);
 
         // Выбираем поток с максимальным качеством
@@ -37,7 +46,7 @@ public class DownloadVideoCommand : ICommand
 
         if (streamInfo != null)
         {
-            Console.WriteLine("Начинается скачивание...");
+            Console.WriteLine($"Начинается скачивание видео: {video.Title}");
             await _client.Videos.Streams.DownloadAsync(streamInfo, _outputFilePath);
             Console.WriteLine($"Скачивание завершено: {_outputFilePath}");
         }
@@ -45,33 +54,6 @@ public class DownloadVideoCommand : ICommand
         {
             Console.WriteLine("Не удалось найти подходящий поток.");
         }
-    }
-
-    /// <summary>
-    /// Получить путь загрузки по умолчанию на основе ОС.
-    /// </summary>
-    /// <returns>Путь загрузки по умолчанию.</returns>
-    private static string GetDefaultDownloadPath()
-    {
-        string desktopPath;
-        if (OperatingSystem.IsWindows())
-        {
-            desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "video.mp4");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            desktopPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "video.mp4");
-        }
-        else if (OperatingSystem.IsLinux())
-        {
-            desktopPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "/tmp", "Рабочий стол", "video.mp4");
-        }
-        else
-        {
-            throw new PlatformNotSupportedException("Операционная система не поддерживается.");
-        }
-
-        return desktopPath;
     }
 
     /// <summary>
