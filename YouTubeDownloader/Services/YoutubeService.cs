@@ -3,19 +3,16 @@ using YoutubeExplode;
 namespace YouTubeDownloader.Services;
 
 /// <summary>
-/// Сервис для работы с YouTube.
+/// Сервис для создания экземпляра YoutubeClient.
 /// </summary>
 public class YoutubeService
 {
-    private readonly YoutubeClient _youtubeClient;
-
-    public YoutubeService()
-    {
-        _youtubeClient = new YoutubeClient();
-    }
-
+    /// <summary>
+    /// Создает и возвращает экземпляр YoutubeClient.
+    /// </summary>
+    /// <returns>Экземпляр YoutubeClient.</returns>
     public YoutubeClient GetClient()
     {
-        return _youtubeClient;
+        return new YoutubeClient();
     }
 }

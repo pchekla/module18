@@ -1,9 +1,12 @@
 namespace YouTubeDownloader.Interfaces;
 
 /// <summary>
-/// Интерфейс команды.
+/// Интерфейс для команд программы.
 /// </summary>
 public interface ICommand
 {
+    /// <summary>
+    /// Выполняет команду.
+    /// </summary>
     Task ExecuteAsync();
 }

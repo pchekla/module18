@@ -1,9 +1,6 @@
-using System;
-using System.IO;
 using YoutubeExplode;
 using YoutubeExplode.Videos.Streams;
 using YouTubeDownloader.Interfaces;
-using YouTubeDownloader.Services;
 
 namespace YouTubeDownloader.Commands;
 
@@ -12,61 +9,41 @@ namespace YouTubeDownloader.Commands;
 /// </summary>
 public class DownloadVideoCommand : ICommand
 {
-    private readonly YoutubeClient _client;
+    private readonly YoutubeClient _youtubeClient;
     private readonly string _videoUrl;
-    private string _outputFilePath;
+    private readonly string _outputFilePath;
 
-    public DownloadVideoCommand(YoutubeClient client, string videoUrl, string? outputFilePath = null)
+    /// <summary>
+    /// Инициализирует новую команду для скачивания видео.
+    /// </summary>
+    /// <param name="youtubeClient">Клиент YoutubeClient.</param>
+    /// <param name="videoUrl">URL видео.</param>
+    /// <param name="outputFilePath">Путь для сохранения видео.</param>
+    public DownloadVideoCommand(YoutubeClient youtubeClient, string videoUrl, string outputFilePath)
     {
-        _client = client ?? throw new ArgumentNullException(nameof(client));
-        _videoUrl = videoUrl ?? throw new ArgumentNullException(nameof(videoUrl));
-
-        // Устанавливаем начальное значение _outputFilePath
-        _outputFilePath = outputFilePath ?? string.Empty;
-    }
-
-    public async Task ExecuteAsync()
-    {
-        // Получаем информацию о видео
-        var video = await _client.Videos.GetAsync(_videoUrl);
-
-        // Формируем путь с названием видео
-        var sanitizedTitle = PathService.SanitizeFileName(video.Title);
-        var fileName = $"{sanitizedTitle}.mp4";
-        _outputFilePath = string.IsNullOrWhiteSpace(_outputFilePath)
-            ? PathService.GetDefaultDownloadPath(fileName)
-            : Path.Combine(_outputFilePath, fileName);
-
-        var streamManifest = await _client.Videos.Streams.GetManifestAsync(_videoUrl);
-
-        // Выбираем поток с максимальным качеством
-        var streamInfo = streamManifest.GetMuxedStreams()
-            .OrderByDescending(s => GetVideoResolution(s.VideoQuality.Label))
-            .FirstOrDefault();
-
-        if (streamInfo != null)
-        {
-            Console.WriteLine($"Начинается скачивание видео: {video.Title}");
-            await _client.Videos.Streams.DownloadAsync(streamInfo, _outputFilePath);
-            Console.WriteLine($"Скачивание завершено: {_outputFilePath}");
-        }
-        else
-        {
-            Console.WriteLine("Не удалось найти подходящий поток.");
-        }
+        _youtubeClient = youtubeClient;
+        _videoUrl = videoUrl;
+        _outputFilePath = outputFilePath;
     }
 
     /// <summary>
-    /// Получить числовое разрешение из ярлыка качества видео.
+    /// Выполняет скачивание видео.
     /// </summary>
-    /// <param name="qualityLabel">Ярлык качества (например, "1080p").</param>
-    /// <returns>Числовое разрешение.</returns>
-    private static int GetVideoResolution(string qualityLabel)
+    public async Task ExecuteAsync()
     {
-        if (int.TryParse(qualityLabel.TrimEnd('p'), out var resolution))
+        var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(_videoUrl);
+
+        // Выбираем muxed поток (с видео и аудио)
+        var streamInfo = streamManifest.GetMuxedStreams().GetWithHighestBitrate();
+
+        if (streamInfo == null)
         {
-            return resolution;
+            Console.WriteLine("Не удалось найти подходящий поток для загрузки.");
+            return;
         }
-        return 0;
+
+        Console.WriteLine($"Начинается скачивание видео: {_videoUrl}");
+        await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, _outputFilePath);
+        Console.WriteLine($"Видео сохранено в: {_outputFilePath}");
     }
 }

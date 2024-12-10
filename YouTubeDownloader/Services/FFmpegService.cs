@@ -2,8 +2,17 @@ using System.Diagnostics;
 
 namespace YouTubeDownloader.Services;
 
+/// <summary>
+/// Сервис для работы с FFmpeg.
+/// </summary>
 public class FFmpegService
 {
+    /// <summary>
+    /// Объединяет видео- и аудиопотоки в один файл.
+    /// </summary>
+    /// <param name="videoPath">Путь к видеофайлу.</param>
+    /// <param name="audioPath">Путь к аудиофайлу.</param>
+    /// <param name="outputPath">Путь для сохранения объединенного файла.</param>
     public void MuxStreams(string videoPath, string audioPath, string outputPath)
     {
         var ffmpegPath = "ffmpeg"; // Убедитесь, что ffmpeg установлен и доступен в PATH

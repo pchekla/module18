@@ -1,5 +1,5 @@
-using YouTubeDownloader.Interfaces;
 using YoutubeExplode;
+using YouTubeDownloader.Interfaces;
 
 namespace YouTubeDownloader.Commands;
 
@@ -8,19 +8,28 @@ namespace YouTubeDownloader.Commands;
 /// </summary>
 public class GetVideoInfoCommand : ICommand
 {
-    private readonly YoutubeClient _client;
+    private readonly YoutubeClient _youtubeClient;
     private readonly string _videoUrl;
 
-    public GetVideoInfoCommand(YoutubeClient client, string videoUrl)
+    /// <summary>
+    /// Инициализирует новую команду для получения информации о видео.
+    /// </summary>
+    /// <param name="youtubeClient">Клиент YoutubeClient.</param>
+    /// <param name="videoUrl">URL видео.</param>
+    public GetVideoInfoCommand(YoutubeClient youtubeClient, string videoUrl)
     {
-        _client = client;
+        _youtubeClient = youtubeClient;
         _videoUrl = videoUrl;
     }
 
+    /// <summary>
+    /// Выполняет получение информации о видео.
+    /// </summary>
     public async Task ExecuteAsync()
     {
-        var video = await _client.Videos.GetAsync(_videoUrl);
+        var video = await _youtubeClient.Videos.GetAsync(_videoUrl);
         Console.WriteLine($"Название: {video.Title}");
-        Console.WriteLine($"Описание: {video.Description}");
+        Console.WriteLine($"Автор: {video.Author.ChannelTitle}");
+        Console.WriteLine($"Длительность: {video.Duration}");
     }
 }
